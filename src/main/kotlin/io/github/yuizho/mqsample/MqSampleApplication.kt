@@ -9,6 +9,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.env.Environment
 import org.springframework.jms.annotation.EnableJms
 import org.springframework.jms.config.DefaultJmsListenerContainerFactory
 import org.springframework.jms.core.JmsTemplate
@@ -24,11 +25,12 @@ fun main(args: Array<String>) {
     runApplication<MqSampleApplication>(*args)
 }
 
-fun sqsConnectionFactory(): SQSConnectionFactory {
+fun sqsConnectionFactory(environment: Environment): SQSConnectionFactory {
+    var serviceEndpoint = environment.getProperty("mq.service.endpoint") ?: throw RuntimeException("there is no mq.service.endpoint properties")
     val client = AmazonSQSClientBuilder.standard()
             .withCredentials(DefaultAWSCredentialsProviderChain())
             .withEndpointConfiguration(AwsClientBuilder.EndpointConfiguration(
-                    "http://localhost:9324/",
+                    serviceEndpoint,
                     "test-elastic-mq"
             )).build()
     // これしないと、AWS.SimpleQueueService.NonExistentQueue エラーとなった
@@ -42,14 +44,14 @@ fun sqsConnectionFactory(): SQSConnectionFactory {
 }
 
 @Configuration
-class MqSampleConfig {
+class MqSampleConfig(val environment: Environment) {
     @Bean
-    fun defaultJmsTemplate(): JmsTemplate = JmsTemplate(sqsConnectionFactory())
+    fun defaultJmsTemplate(): JmsTemplate = JmsTemplate(sqsConnectionFactory(environment))
 
     @Bean
     fun jmsListenerContainerFactory(): DefaultJmsListenerContainerFactory {
         return with(DefaultJmsListenerContainerFactory()) {
-            setConnectionFactory(sqsConnectionFactory())
+            setConnectionFactory(sqsConnectionFactory(environment))
             setDestinationResolver(DynamicDestinationResolver())
             setConcurrency("3-10")
             setSessionAcknowledgeMode(Session.CLIENT_ACKNOWLEDGE)
