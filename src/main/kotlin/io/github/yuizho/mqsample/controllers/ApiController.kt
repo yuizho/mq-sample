@@ -13,6 +13,7 @@ class ApiController(val jmsTemplate: JmsTemplate) {
     fun get(): String {
         println(Thread.currentThread().id)
         println("Sending an email message.")
+        println("jmsTemplate instance: ${System.identityHashCode(jmsTemplate)}")
         jmsTemplate.convertAndSend("mailbox", "Hi!!")
         return "Hi!"
     }
