@@ -1,0 +1,22 @@
+version: '3.1'
+services:
+  mq:
+    image: softwaremill/elasticmq
+    ports:
+      - "9324:9324"
+    volumes:
+      - ./elasticmq.conf:/opt/elasticmq.conf
+  app:
+    image: openjdk:8-jdk-alpine
+    ports:
+      - "8080:8080"
+    environment:
+      AWS_SECRET_ACCESS_KEY: xx
+      AWS_ACCESS_KEY_ID: xx
+    volumes:
+      - ./:/app
+      - ./target/m2:/root/.m2
+    working_dir: /app
+    depends_on:
+      - mq
+    command: ./mvnw spring-boot:run -Dspring-boot.run.profiles=devdocker
